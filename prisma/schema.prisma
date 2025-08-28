@@ -1,0 +1,120 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  FACULTY
+  STUDENT
+}
+
+enum MaterialType {
+  URL
+  PDF
+  ASSIGNMENT
+  VIDEO
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  role      UserRole @default(STUDENT)
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  apiKeys   ApiKey[]
+
+  // 👉 Relations
+  announcements    Announcement[]
+  studentResults   Result[]       @relation("StudentResults") // results where this user is student
+  createdResults   Result[]       @relation("CreatedResults") // results this user created (admin/faculty)
+  createdCourses   Course[]       @relation("CreatedCourses")
+  createdMaterials Material[]     @relation("CreatedMaterials")
+}
+
+model ApiKey {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  keyHash    String   @unique
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+  lastUsedAt DateTime
+
+  @@index([userId])
+}
+
+model Announcement {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  createdAt DateTime @default(now())
+  createdBy User     @relation(fields: [userId], references: [id])
+  userId    String
+}
+
+model Result {
+  id String @id @default(uuid())
+
+  // 👉 Student details
+  student     User   @relation("StudentResults", fields: [studentId], references: [id])
+  studentId   String
+  studentName String // Denormalized for quick access
+
+  // 👉 Admin/Faculty who created this result
+  createdBy   User   @relation("CreatedResults", fields: [createdById], references: [id])
+  createdById String
+
+  examName   String
+  score      Int
+  totalMarks Int
+  grade      String? // Optional: A, B, C etc.
+  status     String // e.g. "Pass" or "Fail"
+
+  createdAt DateTime @default(now())
+}
+
+model Course {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  createdBy   User   @relation("CreatedCourses", fields: [createdById], references: [id])
+  createdById String
+
+  materials Material[] @relation("CourseData")
+}
+
+model Material {
+  id          String       @id @default(uuid())
+  title       String
+  type        MaterialType
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  course   Course @relation("CourseData", fields: [courseId], references: [id])
+  courseId String
+
+  createdBy   User   @relation("CreatedMaterials", fields: [createdById], references: [id])
+  createdById String
+}
