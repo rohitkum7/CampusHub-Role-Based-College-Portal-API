@@ -5,6 +5,8 @@ It provides a platform for Admins, Faculty, and Students to manage academic acti
 
 This project also integrates Novu (with Mailtrap) for email notifications.
 
+[Checkout the Postman API Documentation](https://documenter.getpostman.com/view/28983033/2sB3HgQ3VH)
+
 # 🚀 Features
 
 ### 🔐 Authentication & Authorization
